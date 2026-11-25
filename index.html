@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Recon Bot — sign-in key</title>
+<style>
+  body{font-family:Calibri,"Segoe UI",Arial,sans-serif;background:#F4F8FB;color:#1E3A5F;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .card{background:#fff;border-top:6px solid #29ABE2;border-radius:10px;box-shadow:0 4px 18px rgba(30,58,95,.12);padding:28px 32px;max-width:520px;width:calc(100% - 40px)}
+  .card.bad{border-top-color:#C0392B}
+  h1{font-size:22px;margin:0 0 8px} p{font-size:15px;line-height:1.5;margin:8px 0}
+  .key{font-family:Consolas,monospace;font-size:13px;background:#F4F8FB;border:1px solid #CBD5E0;border-radius:6px;padding:10px;word-break:break-all;margin:12px 0}
+  button{background:#29ABE2;color:#fff;border:0;border-radius:6px;padding:10px 16px;font-size:15px;font-weight:600;cursor:pointer}
+  button:hover{background:#1E3A5F} .small{font-size:13px;color:#5A6B7F}
+  code{background:#F4F8FB;border:1px solid #CBD5E0;border-radius:4px;padding:1px 5px}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <h1 id="title">Almost done</h1>
+  <div id="body"></div>
+</div>
+<script>
+  // Static page: nothing is sent anywhere. It only shows the key PureSpectrum put in this page's address,
+  // so the agent can paste it into Slack. The key is useless without the secret held by the bot, and expires in 10 minutes.
+  (function () {
+    var q = new URLSearchParams(location.search), code = q.get('code'), state = q.get('state'), err = q.get('error');
+    var body = document.getElementById('body');
+    function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    if (err || !code || !state) {
+      document.getElementById('card').className = 'card bad';
+      document.getElementById('title').textContent = 'Sign-in did not complete';
+      body.innerHTML = '<p>' + (err ? 'PureSpectrum said: <b>' + esc(err) + '</b>.' : 'No sign-in key was found on this page.') + '</p><p>Go back to Slack and run <code>/recon</code> to get a new sign-in link.</p>';
+      return;
+    }
+    var key = state + '~' + code;
+    body.innerHTML = '<p>You’re signed in to PureSpectrum. Copy this key and send it to the Recon Bot in Slack:</p>' +
+      '<div class="key" id="key">/recon code ' + esc(key) + '</div>' +
+      '<button id="copy">Copy</button> <span class="small" id="done"></span>' +
+      '<p class="small">Paste it in the same Slack channel and press Enter. The key works once, only for you, for 10 minutes. Your session then lasts 6 hours.</p>';
+    document.getElementById('copy').onclick = function () {
+      var t = '/recon code ' + key;
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { document.getElementById('done').textContent = 'Copied — now paste it into Slack.'; },
+        function () { var r = document.createRange(); r.selectNodeContents(document.getElementById('key')); var s = getSelection(); s.removeAllRanges(); s.addRange(r); document.getElementById('done').textContent = 'Press Ctrl+C to copy.'; });
+    };
+    history.replaceState(null, '', location.pathname);   // clear the key from the address bar and history
+  })();
+</script>
+</body>
+</html>
